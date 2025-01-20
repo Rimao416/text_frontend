@@ -3,7 +3,7 @@ import Header from "@/components/Header";
 import { useRouter } from "next/router";
 import { useGetCourseByIdQuery, useUpdateCourseMutation } from "@/slice/courseSlice";
 
-function EditTrainerPage() {
+function EditCoursePage() {
   const router = useRouter();
   const { id } = router.query;
 
@@ -53,4 +53,4 @@ function EditTrainerPage() {
   );
 }
 
-export default EditTrainerPage;
+export default EditCoursePage;
