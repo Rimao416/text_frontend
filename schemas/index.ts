@@ -26,6 +26,6 @@ export const TrainerSchema = z.object({
       participants: z.number().transform((val) => Number(val)), // Convertir en nombre
       notes: z.string().optional(),
       price: z.number().transform((val) => Number(val)), // Convertir en nombre
-      trainerPrice: z.number().transform((val) => Number(val)), // Convertir en nombre
+      trainer_price: z.number().transform((val) => Number(val)), // Convertir en nombre
 
   });

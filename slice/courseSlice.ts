@@ -11,7 +11,7 @@ export interface ICourse {
   participants: number;
   notes?: string;
   price: number;
-  trainerPrice: number; // Ajouter le prix du formateur
+  trainer_price: number; // Ajouter le prix du formateur
   trainer: {
     _id: string;
     name: string;
@@ -57,7 +57,15 @@ export const courseApi = createApi({
         method: "PUT",
         body: { trainerEmail },
       }),
+      
     }),
+    updateCourse: builder.mutation<ICourse, Partial<ICourse>>({
+      query: ({ id, ...data }) => ({
+        url: `/courses/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+    })
   }),
 });
 
@@ -67,4 +75,5 @@ export const {
   useAddCourseMutation,
   useGetCourseByIdQuery,
   useAssignTrainerMutation,
+  useUpdateCourseMutation
 } = courseApi;

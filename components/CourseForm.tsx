@@ -3,16 +3,23 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CourseSchema } from "@/schemas";
-import { useRouter } from "next/navigation";
-import { useAddCourseMutation } from "@/slice/courseSlice"; // Assumed mutation to add a course
 import { useMessages } from "@/context/useMessage";
 import { z } from "zod";
 
 // Type inference from the schema
 type CourseType = z.infer<typeof CourseSchema>;
 
-export default function CourseForm() {
-  const router = useRouter();
+type CourseFormProps = {
+  onSubmit: (data: CourseType) => Promise<void>;
+  mode: "add" | "edit";
+  defaultValues?: Partial<CourseType>; // To pre-fill fields in edit mode
+};
+
+export default function CourseForm({
+  onSubmit,
+  mode,
+  defaultValues = {},
+}: CourseFormProps) {
   const { setMessage } = useMessages();
 
   const {
@@ -27,58 +34,55 @@ export default function CourseForm() {
       subject: "",
       location: "",
       participants: 0,
-      notes: "",
       price: 0,
-      trainerPrice: 0,
+      trainer_price: 0,
+      notes: "",
+      ...defaultValues, // Merge with provided defaults
     },
   });
 
-  // Using the mutation to add a course
-  const [addCourse, { isLoading, isSuccess }] = useAddCourseMutation();
-
-  const onSubmit = async (data: CourseType) => {
+  const handleFormSubmit = async (data: CourseType) => {
     try {
-      await addCourse(data).unwrap(); // Send request to the backend
-      setMessage("Course added successfully", "success");
-      router.push("/courses"); // Redirect after course addition
-} catch (err: unknown) {
-    let errorMessage = "Une erreur est survenue.";
+      await onSubmit(data); // Call parent handler
+      const successMessage =
+        mode === "add" ? "Course added successfully" : "Course updated successfully";
+      setMessage(successMessage, "success");
+    } catch (err: unknown) {
+      let errorMessage = "An error occurred.";
 
-    if (
-      typeof err === "object" &&
-      err !== null &&
-      "data" in err &&
-      typeof err.data === "object" &&
-      err.data !== null &&
-      "message" in err.data
-    ) {
-      errorMessage = String(
-        (err as { data: { message: string } }).data.message
-      );
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "data" in err &&
+        typeof err.data === "object" &&
+        err.data !== null &&
+        "message" in err.data
+      ) {
+        errorMessage = String((err as { data: { message: string } }).data.message);
+      }
+
+      setMessage(errorMessage, "error");
     }
-
-    setMessage(errorMessage, "error");
-  }
   };
 
   return (
     <div className="max-w-lg mx-auto p-6 bg-white shadow-md rounded-md">
-      <h2 className="text-2xl font-semibold text-gray-800 mb-4">Add a Course</h2>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Course Name Field */}
+      <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+        {mode === "add" ? "Add a Course" : "Edit Course"}
+      </h2>
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+        {/* Course Name */}
         <div>
           <label className="block text-gray-700 font-medium">Course Name</label>
           <input
             {...register("name")}
             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Advanced React.js"
           />
           {errors.name && (
             <p className="text-red-500 text-sm">{errors.name.message}</p>
           )}
         </div>
-
-        {/* Date Field */}
+        {/* Course Date */}
         <div>
           <label className="block text-gray-700 font-medium">Course Date</label>
           <input
@@ -90,106 +94,88 @@ export default function CourseForm() {
             <p className="text-red-500 text-sm">{errors.date.message}</p>
           )}
         </div>
-
-        {/* Subject Field */}
+        {/* Subject */}
         <div>
           <label className="block text-gray-700 font-medium">Subject</label>
           <input
             {...register("subject")}
             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="React.js"
           />
           {errors.subject && (
             <p className="text-red-500 text-sm">{errors.subject.message}</p>
           )}
         </div>
-
-        {/* Location Field */}
+        {/* Location */}
         <div>
           <label className="block text-gray-700 font-medium">Location</label>
           <input
             {...register("location")}
             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Stuttgart"
           />
           {errors.location && (
             <p className="text-red-500 text-sm">{errors.location.message}</p>
           )}
         </div>
-
-        {/* Participants Field */}
+        {/* Participants */}
         <div>
-          <label className="block text-gray-700 font-medium">
-            Number of Participants
-          </label>
+          <label className="block text-gray-700 font-medium">Participants</label>
           <input
             {...register("participants", { valueAsNumber: true })}
             type="number"
-            min="1"
             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="20"
           />
           {errors.participants && (
-            <p className="text-red-500 text-sm">{errors.participants.message}</p>
+            <p className="text-red-500 text-sm">
+              {errors.participants.message}
+            </p>
           )}
         </div>
-
-        {/* Price Field */}
+        {/* Price */}
         <div>
           <label className="block text-gray-700 font-medium">Price</label>
           <input
             {...register("price", { valueAsNumber: true })}
             type="number"
-            min="0"
+            step="0.01"
             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="2000"
           />
           {errors.price && (
             <p className="text-red-500 text-sm">{errors.price.message}</p>
           )}
         </div>
-
-        {/* Trainer Price Field */}
+        {/* Trainer Price */}
         <div>
           <label className="block text-gray-700 font-medium">Trainer Price</label>
           <input
-            {...register("trainerPrice", { valueAsNumber: true })}
+            {...register("trainer_price", { valueAsNumber: true })}
             type="number"
-            min="0"
+            step="0.01"
             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="500"
           />
-          {errors.trainerPrice && (
-            <p className="text-red-500 text-sm">{errors.trainerPrice.message}</p>
+          {errors.trainer_price && (
+            <p className="text-red-500 text-sm">{errors.trainer_price.message}</p>
           )}
         </div>
-
-        {/* Notes Field */}
+        {/* Notes */}
         <div>
           <label className="block text-gray-700 font-medium">Notes</label>
           <textarea
             {...register("notes")}
+            rows={3}
             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Focus on hooks and context API"
           />
           {errors.notes && (
             <p className="text-red-500 text-sm">{errors.notes.message}</p>
           )}
         </div>
-
         {/* Submit Button */}
         <button
           type="submit"
           className="w-full bg-green-500 text-white p-2 rounded-md hover:bg-green-600"
-          disabled={isLoading}
         >
-          {isLoading ? "Submitting..." : "Submit"}
+          {mode === "add" ? "Add Course" : "Save Changes"}
         </button>
       </form>
-
-      {isSuccess && (
-        <p className="text-green-500 mt-4">Course added successfully!</p>
-      )}
     </div>
   );
 }
