@@ -5,7 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CourseSchema } from "@/schemas";
 import { useMessages } from "@/context/useMessage";
 import { z } from "zod";
-
+import { useRouter } from "next/navigation";
+import { useGetCoursesQuery } from "@/slice/courseSlice";
 // Type inference from the schema
 type CourseType = z.infer<typeof CourseSchema>;
 
@@ -20,6 +21,7 @@ export default function CourseForm({
   mode,
   defaultValues = {},
 }: CourseFormProps) {
+  const router = useRouter();
   const { setMessage } = useMessages();
 
   const {
@@ -40,13 +42,17 @@ export default function CourseForm({
       ...defaultValues, // Merge with provided defaults
     },
   });
-
+  const { refetch } = useGetCoursesQuery();
   const handleFormSubmit = async (data: CourseType) => {
     try {
       await onSubmit(data); // Call parent handler
       const successMessage =
-        mode === "add" ? "Course added successfully" : "Course updated successfully";
+        mode === "add"
+          ? "Course added successfully"
+          : "Course updated successfully";
+      refetch();
       setMessage(successMessage, "success");
+      router.push("/courses");
     } catch (err: unknown) {
       let errorMessage = "An error occurred.";
 
@@ -58,7 +64,9 @@ export default function CourseForm({
         err.data !== null &&
         "message" in err.data
       ) {
-        errorMessage = String((err as { data: { message: string } }).data.message);
+        errorMessage = String(
+          (err as { data: { message: string } }).data.message
+        );
       }
 
       setMessage(errorMessage, "error");
@@ -71,7 +79,7 @@ export default function CourseForm({
         {mode === "add" ? "Add a Course" : "Edit Course"}
       </h2>
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-        {/* Input fields */}
+        {/* Course Name */}
         <div>
           <label className="block text-gray-700 font-medium">Course Name</label>
           <input
@@ -82,6 +90,7 @@ export default function CourseForm({
             <p className="text-red-500 text-sm">{errors.name.message}</p>
           )}
         </div>
+        {/* Course Date */}
         <div>
           <label className="block text-gray-700 font-medium">Course Date</label>
           <input
@@ -93,7 +102,87 @@ export default function CourseForm({
             <p className="text-red-500 text-sm">{errors.date.message}</p>
           )}
         </div>
-        {/* Add more fields as needed */}
+        {/* Subject */}
+        <div>
+          <label className="block text-gray-700 font-medium">Subject</label>
+          <input
+            {...register("subject")}
+            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {errors.subject && (
+            <p className="text-red-500 text-sm">{errors.subject.message}</p>
+          )}
+        </div>
+        {/* Location */}
+        <div>
+          <label className="block text-gray-700 font-medium">Location</label>
+          <input
+            {...register("location")}
+            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {errors.location && (
+            <p className="text-red-500 text-sm">{errors.location.message}</p>
+          )}
+        </div>
+        {/* Participants */}
+        <div>
+          <label className="block text-gray-700 font-medium">
+            Participants
+          </label>
+          <input
+            {...register("participants", { valueAsNumber: true })}
+            type="number"
+            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {errors.participants && (
+            <p className="text-red-500 text-sm">
+              {errors.participants.message}
+            </p>
+          )}
+        </div>
+        {/* Price */}
+        <div>
+          <label className="block text-gray-700 font-medium">Price</label>
+          <input
+            {...register("price", { valueAsNumber: true })}
+            type="number"
+            step="0.01"
+            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {errors.price && (
+            <p className="text-red-500 text-sm">{errors.price.message}</p>
+          )}
+        </div>
+        {/* Trainer Price */}
+        <div>
+          <label className="block text-gray-700 font-medium">
+            Trainer Price
+          </label>
+          <input
+            {...register("trainer_price", { valueAsNumber: true })}
+            type="number"
+            step="0.01"
+            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {errors.trainer_price && (
+            <p className="text-red-500 text-sm">
+              {errors.trainer_price.message}
+            </p>
+          )}
+        </div>
+        {/* Notes */}
+        <div>
+          <label className="block text-gray-700 font-medium">Notes</label>
+          <textarea
+            {...register("notes")}
+            rows={3}
+            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {errors.notes && (
+            <p className="text-red-500 text-sm">{errors.notes.message}</p>
+          )}
+        </div>
+        {/* Submit Button */}
         <button
           type="submit"
           className="w-full bg-green-500 text-white p-2 rounded-md hover:bg-green-600"

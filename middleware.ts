@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+
 const privateRoutes = ["/courses", "/auth/login", "/auth/new-password"];
-const authRoutes= ["/auth/login", "/auth/register", "/auth/error", "/auth/reset", "/auth/new-password"];
+const authRoutes = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/error",
+  "/auth/reset",
+  "/auth/new-password",
+];
 
 export function middleware(req: NextRequest) {
   const token = req.cookies.get("accessToken")?.value; // Récupérer le token depuis les cookies
@@ -24,6 +31,8 @@ export function middleware(req: NextRequest) {
 }
 
 // 🔹 Spécifier les chemins où le middleware doit s'exécuter
+const allRoutes = privateRoutes.concat(authRoutes, ["/dashboard"]);
+
 export const config = {
-  matcher: [...privateRoutes, ...authRoutes, "/dashboard"], // Adapter selon ton app
+  matcher: allRoutes,
 };

@@ -1,12 +1,14 @@
 import Header from "../components/Header";
-import { useGetTrainersQuery } from "@/slice/trainerSlice";
+import { useDeleteTrainerMutation, useGetTrainersQuery } from "@/slice/trainerSlice";
 import LoaderTable from "@/components/LoaderTable";
 import Link from "next/link";
 import { useMessages } from "@/context/useMessage";
 
 export default function Trainers() {
   const { setMessage } = useMessages();
-  const { data: trainers, error, isLoading } = useGetTrainersQuery();
+  const [deleteTrainer] = useDeleteTrainerMutation();
+  const { data: trainers, error, isLoading, refetch } = useGetTrainersQuery();
+
   if (error) {
     let errorMessage = "An unknown error occurred";
 
@@ -20,6 +22,19 @@ export default function Trainers() {
 
     return <div>Error: {errorMessage}</div>;
   }
+
+  const handleDelete = async (id: string) => {
+    const confirmed = window.confirm("Are you sure you want to delete this trainer?");
+    if (!confirmed) return;
+
+    try {
+      await deleteTrainer(id).unwrap();
+      await refetch();
+      setMessage("The trainer has been successfully deleted.", "success");
+    } catch (err) {
+      setMessage("An error occurred while deleting the trainer.", "error");
+    }
+  };
 
   return (
     <div>
@@ -73,10 +88,15 @@ export default function Trainers() {
                       </a>
                     </td>
                     <td className="py-3 px-4 flex space-x-2">
-                      <button className="bg-blue-500 text-white px-3 py-1 rounded">
-                        Edit
-                      </button>
-                      <button className="bg-red-500 text-white px-3 py-1 rounded">
+                      <Link href={`/trainers/edit/${trainer._id}`}>
+                        <button className="bg-blue-500 text-white px-3 py-1 rounded">
+                          Edit
+                        </button>
+                      </Link>
+                      <button
+                        className="bg-red-500 text-white px-3 py-1 rounded"
+                        onClick={() => handleDelete(trainer._id)}
+                      >
                         Delete
                       </button>
                     </td>

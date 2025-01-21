@@ -1,26 +1,45 @@
-import { useGetCoursesQuery } from "@/slice/courseSlice";
+import {
+  useGetCoursesQuery,
+  useDeleteCourseMutation,
+} from "@/slice/courseSlice";
 import Header from "../components/Header";
 import LoaderTable from "../components/LoaderTable";
 import Link from "next/link";
 import { format } from "date-fns";
+import { useMessages } from "@/context/useMessage";
+
 export default function Courses() {
-  const { data: courses, error, isLoading } = useGetCoursesQuery();
+  const { data: courses, error, isLoading, refetch } = useGetCoursesQuery();
+  const {setMessage}=useMessages()
+  const [deleteCourse] = useDeleteCourseMutation();
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to delete this course?")) {
+      try {
+        await deleteCourse(id).unwrap();
+        await refetch();
+        setMessage("The course has been successfully deleted.", "success");
+      } catch (error) {
+        setMessage("An error occurred while deleting the trainer.", "error");
+      }
+    }
+  };
+
   if (error) {
     let errorMessage = "An unknown error occurred";
-
     if ("status" in error) {
       errorMessage = `Error ${error.status}: ${JSON.stringify(error.data)}`;
     } else if ("message" in error) {
       errorMessage = error.message || "An unknown error occurred";
     }
-
     return <div>Error: {errorMessage}</div>;
   }
+
   return (
     <div>
       <Header />
       <main className="container mx-auto p-6">
-        <h1 className="text-4xl font-bold mb-8">Courses</h1>*
+        <h1 className="text-4xl font-bold mb-8 text-white">Courses</h1>
         <Link
           href="/courses/new"
           className="bg-green-500 text-white px-4 py-2 rounded mb-4"
@@ -65,34 +84,17 @@ export default function Courses() {
                         Edit
                       </button>
                     </Link>
-                    <button className="bg-red-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-red-600">
+                    <button
+                      onClick={() => handleDelete(course.id)}
+                      className="bg-red-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-red-600"
+                    >
                       Delete
                     </button>
-
                     <Link href={`/courses/assign/${course.id}`}>
                       <button className="bg-green-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-green-600">
                         Assign Trainer
                       </button>
                     </Link>
-                    {/* {course.trainer ? (
-                      <button className="bg-gray-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-gray-600">
-                        Remove Trainer
-                      </button>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <select className="border border-gray-300 px-4 py-2 rounded-lg shadow-md">
-                          <option value="">Select Trainer</option>
-                          {sampleTrainers.map((trainer) => (
-                            <option key={trainer.id} value={trainer.id}>
-                              {trainer.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button className="bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600">
-                          Assign Trainer
-                        </button>
-                      </div>
-                    )} */}
                   </td>
                 </tr>
               ))}

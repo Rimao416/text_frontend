@@ -3,12 +3,13 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import Cookies from "js-cookie";
 import { IUser } from "@/interface/user";
 import { API } from "../config";
+
 // Définition de l'API RTK Query
 export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: API.defaults.baseURL, // L'URL de base
-    credentials: "include", // Inclure les cookies
+    baseUrl: API.defaults.baseURL,
+    credentials: "include",
     prepareHeaders: (headers) => {
       const token = Cookies.get("accessToken");
       if (token) {
@@ -33,7 +34,7 @@ export const authApi = createApi({
       }),
     }),
     getUser: builder.query<IUser, void>({
-      query: () => "/user",
+      query: () => "/trainers/me",
     }),
     refreshToken: builder.mutation<string, void>({
       query: () => ({
@@ -50,7 +51,20 @@ export const authApi = createApi({
         body: updatedUser,
       }),
       transformResponse: (response: { user: IUser }) => response.user,
-      
+    }),
+    signOut: builder.mutation<void, void>({
+      query: () => ({
+        url: "/auth/logout",
+        method: "POST",
+      }),
+      onQueryStarted: async (_, { dispatch, queryFulfilled }) => {
+        try {
+          await queryFulfilled;
+          dispatch(logout());
+        } catch (error) {
+          console.error("Erreur lors de la déconnexion :", error);
+        }
+      },
     }),
   }),
 });
@@ -62,9 +76,10 @@ export const {
   useGetUserQuery,
   useRefreshTokenMutation,
   useUpdateUserMutation,
+  useSignOutMutation,
 } = authApi;
 
-// Slice pour gérer les états locaux comme les erreurs
+// Slice pour gérer les états locaux
 const authSlice = createSlice({
   name: "auth",
   initialState: {
@@ -75,6 +90,11 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (state, action: PayloadAction<Partial<IUser>>) => {
       state.user = { ...state.user, ...action.payload } as IUser;
+    },
+    logout: (state) => {
+      state.user = null;
+      Cookies.remove("accessToken");
+      Cookies.remove("refreshToken");
     },
     setErrors: (
       state,
@@ -89,7 +109,7 @@ const authSlice = createSlice({
         authApi.endpoints.signUp.matchFulfilled,
         (state, { payload }) => {
           state.user = payload;
-          Cookies.set("token", payload.token);
+          Cookies.set("accessToken", payload.token);
         }
       )
       .addMatcher(
@@ -97,15 +117,6 @@ const authSlice = createSlice({
         (state, { payload }) => {
           state.user = payload;
           Cookies.set("accessToken", payload.token);
-        }
-      )
-      .addMatcher(
-        authApi.endpoints.login.matchRejected,
-        (state, { payload }) => {
-          if (payload) {
-            console.log(payload.data);
-            state.errors = payload.data as { [key: string]: string | null };
-          }
         }
       )
       .addMatcher(
@@ -117,15 +128,18 @@ const authSlice = createSlice({
       .addMatcher(
         authApi.endpoints.updateUser.matchFulfilled,
         (state, { payload }) => {
-          console.log(payload);
           state.user = payload;
+        }
+      )
+      .addMatcher(
+        authApi.endpoints.signOut.matchFulfilled,
+        (state) => {
+          state.user = null;
         }
       );
   },
 });
 
-// Export des actions du slice
-export const { setCredentials, setErrors } = authSlice.actions;
-
-// Export du reducer pour la configuration du store
+// Export des actions et du reducer
+export const { setCredentials, setErrors, logout } = authSlice.actions;
 export default authSlice.reducer;

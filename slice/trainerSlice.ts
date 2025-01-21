@@ -1,9 +1,9 @@
 // trainerSlice.js
 import { API } from "@/config";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-
+import Cookies from "js-cookie";
 export interface ITrainer {
-    _id: string;
+  _id: string;
   name: string;
   training_subjects: string[];
   location: string;
@@ -12,6 +12,7 @@ export interface ITrainer {
 }
 
 export interface TrainerPayload {
+  id: string;
   name: string;
   training_subjects: string[];
   location: string;
@@ -23,30 +24,42 @@ export interface TrainerPayload {
 export const trainerApi = createApi({
   reducerPath: "trainerApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: API.defaults.baseURL,
-    credentials: "include", // Inclus les cookies dans les requêtes
+    baseUrl: API.defaults.baseURL, // Remplacez par votre URL
+    prepareHeaders: (headers) => {
+      const token = Cookies.get("accessToken");
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      return headers;
+    },
   }),
   tagTypes: ["Trainer"], // Ajoute les tags pour l'invalidation du cache
   endpoints: (builder) => ({
-    // Récupère les formateurs
+    // Récupère tous les formateurs
     getTrainers: builder.query<ITrainer[], void>({
       query: () => "/trainers",
       transformResponse: (response: { data: ITrainer[] }) => response.data,
-
       providesTags: (result) =>
         result
           ? [
-              ...result.map(({ email }) => ({
+              ...result.map(({ _id }) => ({
                 type: "Trainer" as const,
-                id: email,
+                id: _id,
               })),
               { type: "Trainer", id: "LIST" },
             ]
           : [{ type: "Trainer", id: "LIST" }],
     }),
 
+    // Récupère un formateur unique
+    getSingleTrainer: builder.query<ITrainer, string>({
+      query: (id) => `/trainers/${id}`,
+      transformResponse: (response: { data: ITrainer }) => response.data,
+      providesTags: (result, error, id) => [{ type: "Trainer", id }],
+    }),
+
     // Ajoute un formateur
-    addTrainer: builder.mutation<ITrainer, TrainerPayload>({
+    addTrainer: builder.mutation<ITrainer, Partial<TrainerPayload>>({
       query: (trainer) => ({
         url: "/trainers",
         method: "POST",
@@ -54,6 +67,18 @@ export const trainerApi = createApi({
       }),
       invalidatesTags: [{ type: "Trainer", id: "LIST" }],
     }),
+
+    // Met à jour un formateur existant
+    updateTrainer: builder.mutation<ITrainer, Partial<TrainerPayload>>({
+      query: ({ id, ...data }) => ({
+        url: `/trainers/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: "Trainer", id }],
+    }),
+
+    // Suggestion de formateur
     suggestTrainer: builder.query<
       ITrainer,
       { courseSubject: string; courseDate: string }
@@ -61,7 +86,15 @@ export const trainerApi = createApi({
       query: ({ courseSubject, courseDate }) =>
         `/trainers/suggest?courseSubject=${courseSubject}&courseDate=${courseDate}`,
       providesTags: [{ type: "Trainer", id: "LIST" }],
-      transformResponse: (response: { data: { trainer: ITrainer } }) => response.data.trainer,
+      transformResponse: (response: { data: { trainer: ITrainer } }) =>
+        response.data.trainer,
+    }),
+    deleteTrainer: builder.mutation<{ success: boolean }, string>({
+      query: (id) => ({
+        url: `/trainers/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, id) => [{ type: "Trainer", id }],
     }),
   }),
 });
@@ -69,6 +102,9 @@ export const trainerApi = createApi({
 // Export the auto-generated hooks for querying and mutations
 export const {
   useGetTrainersQuery,
+  useGetSingleTrainerQuery,
   useAddTrainerMutation,
+  useUpdateTrainerMutation,
   useSuggestTrainerQuery,
+  useDeleteTrainerMutation,
 } = trainerApi;
