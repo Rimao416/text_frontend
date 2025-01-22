@@ -9,6 +9,7 @@ export const TrainerSchema = z.object({
         z.object({
           value: z.string().min(1, "Please enter a subject").trim(), // Validation pour chaque sujet
         })
+        
       )
       .min(1, "Please select at least one subject")
       

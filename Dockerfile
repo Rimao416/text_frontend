@@ -1,26 +1,20 @@
-# Étape 1 : Construire l'application
-FROM node:18-alpine AS builder
+# Utilise une image Node.js légère
+FROM node:latest
+
+# Définit le répertoire de travail
 WORKDIR /app
 
-# Copier les fichiers nécessaires pour l'installation
-COPY package.json package-lock.json ./
+# Copie uniquement package.json et yarn.lock pour optimiser le cache Docker
+COPY package.json yarn.lock ./
 
-# Installer les dépendances
-RUN npm install
+# Installe les dépendances
+RUN yarn install
 
-# Copier le reste des fichiers et construire l'application
+# Copie le reste du projet
 COPY . .
-RUN npm run build
 
-# Étape 2 : Servir le build en production
-FROM node:18-alpine
-WORKDIR /app
-
-# Copier les fichiers construits depuis l'étape précédente
-COPY --from=builder /app ./
-
-# Exposer le port de l'application
+# Expose le port Next.js
 EXPOSE 3000
 
-# Démarrer le serveur
-CMD ["npm", "start"]
+# Commande pour démarrer Next.js en mode développement
+CMD ["yarn", "dev"]
